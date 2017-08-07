@@ -9,12 +9,13 @@ import android.support.v7.widget.RecyclerView;
 import android.view.View;
 
 import com.codeest.geeknews.R;
+import com.codeest.geeknews.app.Constants;
 import com.codeest.geeknews.base.RootFragment;
+import com.codeest.geeknews.base.contract.zhihu.DailyContract;
 import com.codeest.geeknews.component.RxBus;
 import com.codeest.geeknews.model.bean.DailyBeforeListBean;
 import com.codeest.geeknews.model.bean.DailyListBean;
 import com.codeest.geeknews.presenter.zhihu.DailyPresenter;
-import com.codeest.geeknews.base.contract.zhihu.DailyContract;
 import com.codeest.geeknews.ui.zhihu.activity.CalendarActivity;
 import com.codeest.geeknews.ui.zhihu.activity.ZhihuDetailActivity;
 import com.codeest.geeknews.ui.zhihu.adapter.DailyAdapter;
@@ -44,6 +45,8 @@ public class DailyFragment extends RootFragment<DailyPresenter> implements Daily
     DailyAdapter mAdapter;
     List<DailyListBean.StoriesBean> mList = new ArrayList<>();
 
+    boolean isDataReady = false;
+
     @Override
     protected void initInject() {
         getFragmentComponent().inject(this);
@@ -71,7 +74,7 @@ public class DailyFragment extends RootFragment<DailyPresenter> implements Daily
                 }
                 Intent intent = new Intent();
                 intent.setClass(mContext, ZhihuDetailActivity.class);
-                intent.putExtra("id", mList.get(position).getId());
+                intent.putExtra(Constants.IT_ZHIHU_DETAIL_ID, mList.get(position).getId());
                 ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(mActivity, shareView, "shareView");
                 mContext.startActivity(intent,options.toBundle());
             }
@@ -96,6 +99,20 @@ public class DailyFragment extends RootFragment<DailyPresenter> implements Daily
         mPresenter.getDailyData();
     }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (isDataReady) {
+            mPresenter.startInterval();
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        mPresenter.stopInterval();
+    }
+
     /**
      * 当天数据
      * @param info
@@ -109,7 +126,7 @@ public class DailyFragment extends RootFragment<DailyPresenter> implements Daily
         mList = info.getStories();
         currentDate = String.valueOf(Integer.valueOf(info.getDate()) + 1);
         mAdapter.addDailyDate(info);
-        mPresenter.stopInterval();
+        isDataReady = true;
         mPresenter.startInterval();
     }
 
@@ -124,6 +141,7 @@ public class DailyFragment extends RootFragment<DailyPresenter> implements Daily
             swipeRefresh.setRefreshing(false);
         }
         stateMain();
+        isDataReady = false;
         mPresenter.stopInterval();
         mList = info.getStories();
         currentDate = String.valueOf(Integer.valueOf(info.getDate()));
